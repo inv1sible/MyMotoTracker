@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">MyMotoTracker</string>
+    <string name="intro_text">Zum Beenden nach rechts swipen.</string>
+    <string name="map_not_ready">Karte (noch) nicht verfügbar.</string>
+    <string name="location_information">Location information</string>
+    <string name="textAcceleration">0 m/s</string>
+    <string name="textAccuracy">0 m</string>
+    <string name="textCurrentAngle">0°</string>
+    <string name="tracking_status">Tracking status</string>
+    <string name="textDBEntries">0 entries in cache.db</string>
+    <string name="clear_cache">Clear Cache</string>
+    <string name="tracking">Tracking</string>
+    <string name="tracking_off">Tracking OFF</string>
+    <string name="tracking_on">Tracking ON</string>
+    <string name="textCurrentSpeed">100</string>
+    <string name="textAverageSpeed">70</string>
+    <string name="textMaxSpeed">999</string>
+    <string name="textLeftAngle">25°</string>
+    <string name="textRightAngle">25°</string>
+</resources>
