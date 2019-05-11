@@ -1,13 +1,4 @@
-package anony.mouse.mototracker;
-
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapFragment;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.UiSettings;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
+package anony.mouse.mymototracker;
 
 import android.Manifest;
 import android.content.Context;
@@ -22,14 +13,21 @@ import android.support.v4.content.ContextCompat;
 import android.support.wear.widget.SwipeDismissFrameLayout;
 import android.support.wearable.activity.WearableActivity;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
-public class MapsActivity extends WearableActivity implements OnMapReadyCallback, LocationListener {
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+
+public class WearActivity extends WearableActivity implements OnMapReadyCallback, LocationListener {
 
     /**
      * Map is initialized when it's fully loaded and ready to be used.

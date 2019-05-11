@@ -1,4 +1,4 @@
-package anony.mouse.mototracker;
+package anony.mouse.mymototracker;
 
 import android.Manifest;
 import android.arch.lifecycle.Observer;
@@ -12,7 +12,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -24,15 +23,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import java.io.File;
-import java.io.IOException;
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Locale;
-import java.util.logging.FileHandler;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import static java.lang.Math.sqrt;
 import static java.lang.Math.toDegrees;
@@ -67,8 +59,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private double rollingAngleOffset;
     private double rollingAngleCalibrated;
 
-    Logger logger;
-    FileHandler fh;
+//    Logger logger;
+//    FileHandler fh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,24 +69,24 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        logger = Logger.getLogger("MyLog");
-        try {
-            String externalStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
-            File loggingDir = new File(externalStorage + File.separator + "Logs" );
-            if(!loggingDir.exists()){
-                loggingDir.mkdir();
-            }
-            SimpleDateFormat format = new SimpleDateFormat("YYYYMMdd_HHmmss");
-            String fileName = "MyMotoTracker"+ format.format(Calendar.getInstance().getTime())+".log";
-            fh = new FileHandler(loggingDir + File.separator + fileName);
-            logger.addHandler(fh);
-            SimpleFormatter formatter = new SimpleFormatter();
-            fh.setFormatter(formatter);
-            logger.setUseParentHandlers(false);
-            logger.warning("Test");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        logger = Logger.getLogger("MyLog");
+//        try {
+//            String externalStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
+//            File loggingDir = new File(externalStorage + File.separator + "Logs");
+//            if (!loggingDir.exists()) {
+//                loggingDir.mkdir();
+//            }
+//            SimpleDateFormat format = new SimpleDateFormat("YYYYMMdd_HHmmss");
+//            String fileName = "MyMotoTracker" + format.format(Calendar.getInstance().getTime()) + ".log";
+//            fh = new FileHandler(loggingDir + File.separator + fileName);
+//            logger.addHandler(fh);
+//            SimpleFormatter formatter = new SimpleFormatter();
+//            fh.setFormatter(formatter);
+//            logger.setUseParentHandlers(false);
+//            logger.warning("Test");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         myGravity = new float[]{0, 0, 0};
         myFilteredGravity = new float[]{0, 0, 0};
@@ -240,8 +232,18 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 double azimuth = toDegrees(orientation[0]);
                 double pitch = toDegrees(orientation[1]);
                 double roll = toDegrees(orientation[2]);
-                rollingAngleRaw = roll;
-                rollingAngleCalibrated = roll - rollingAngleOffset;
+                if (pitch > -50d && pitch < 0d) {
+                    rollingAngleRaw = roll;
+                    rollingAngleCalibrated = roll - rollingAngleOffset;
+                    if (rollingAngleCalibrated < -90d) {
+                        rollingAngleCalibrated = -90d;
+                    }
+                    if (rollingAngleCalibrated > 90d) {
+                        rollingAngleCalibrated = 90d;
+                    }
+                } else {
+                    rollingAngleCalibrated = Double.NaN;
+                }
                 String message = format(Locale.GERMANY, "azimuth=%.0f, pitch=%.0f, roll=%.0f", azimuth, pitch, roll);
                 Log.d("orientation", message);
             }
@@ -283,64 +285,67 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myTextViewAccuracy.setText(String.format("%.2f", accuracy) + " m");
         myTextViewRollingAngle.setText(String.format("%.1f", rollingAngleCalibrated) + "°");
         // myTextViewRollingAngleLeft and -Right need to be observed from DB (see below)
-        lastLocation = location;
-        LocationEntry locationEntry = new LocationEntry(timestamp, latitude, longitude,
-                speed, acceleration, accuracy, rollingAngleCalibrated);
-        try {
-            LocationRepository locationRepository = new LocationRepository(getApplicationContext());
-            locationRepository.insertLocation(locationEntry);
-            locationRepository.getLocationsCount().observe(this,
-                    new Observer<Integer>() {
-                        @Override
-                        public void onChanged(Integer count) {
-                            myTextViewLocationEntries.setText(count + " entries in cache.db");
-                        }
-                    });
-            locationRepository.getAvgSpeed().observe(this,
-                    new Observer<Double>() {
-                        @Override
-                        public void onChanged(Double speed) {
-                            if (speed != null) {
-                                myTextViewSpeedAvg.setText(String.format("%.0f", toKMH(speed)));
+        if (toKMH(speed) > 5) {
+            lastLocation = location;
+            LocationEntry locationEntry = new LocationEntry(timestamp, latitude, longitude,
+                    speed, acceleration, accuracy, rollingAngleCalibrated);
+            try {
+                LocationRepository locationRepository = new LocationRepository(getApplicationContext());
+                locationRepository.insertLocation(locationEntry);
+                locationRepository.getLocationsCount().observe(this,
+                        new Observer<Integer>() {
+                            @Override
+                            public void onChanged(Integer count) {
+                                myTextViewLocationEntries.setText(count + " entries in cache.db");
                             }
-                        }
-                    });
-            locationRepository.getMaxSpeed().observe(this,
-                    new Observer<Double>() {
-                        @Override
-                        public void onChanged(Double speed) {
-                            if (speed != null) {
-                                myTextViewSpeedMax.setText(String.format("%.0f", toKMH(speed)));
+                        });
+                locationRepository.getAvgSpeed().observe(this,
+                        new Observer<Double>() {
+                            @Override
+                            public void onChanged(Double speed) {
+                                if (speed != null) {
+                                    myTextViewSpeedAvg.setText(String.format("%.0f", toKMH(speed)));
+                                }
                             }
-                        }
-                    });
-            locationRepository.getMinAngle().observe(this,
-                    new Observer<Double>() {
-                        @Override
-                        public void onChanged(Double angle) {
-                            if (angle != null) {
-                                myTextViewRollingAngleLeft.setText(String.format("%.0f°", Math.abs(angle)));
+                        });
+                locationRepository.getMaxSpeed().observe(this,
+                        new Observer<Double>() {
+                            @Override
+                            public void onChanged(Double speed) {
+                                if (speed != null) {
+                                    myTextViewSpeedMax.setText(String.format("%.0f", toKMH(speed)));
+                                }
                             }
-                        }
-                    });
-            locationRepository.getMaxAngle().observe(this,
-                    new Observer<Double>() {
-                        @Override
-                        public void onChanged(Double angle) {
-                            if (angle != null) {
-                                myTextViewRollingAngleRight.setText(String.format("%.0f°", angle));
+                        });
+                locationRepository.getMinAngle().observe(this,
+                        new Observer<Double>() {
+                            @Override
+                            public void onChanged(Double angle) {
+                                if (angle != null) {
+                                    myTextViewRollingAngleLeft.setText(String.format("%.0f°", Math.abs(angle)));
+                                }
                             }
-                        }
-                    });
-        }catch (Exception e){
-            Context context = getApplicationContext();
-            String text = "Exception: " + e.getLocalizedMessage();
-            int duration = Toast.LENGTH_LONG;
+                        });
+                locationRepository.getMaxAngle().observe(this,
+                        new Observer<Double>() {
+                            @Override
+                            public void onChanged(Double angle) {
+                                if (angle != null) {
+                                    myTextViewRollingAngleRight.setText(String.format("%.0f°", angle));
+                                }
+                            }
+                        });
+                locationRepository.close();
+            } catch (Exception e) {
+                Context context = getApplicationContext();
+                String text = "Exception: " + e.getLocalizedMessage();
+                int duration = Toast.LENGTH_LONG;
 
-            Toast toast = Toast.makeText(context, text, duration);
-            toast.show();
+                Toast toast = Toast.makeText(context, text, duration);
+                toast.show();
 
-            logger.warning(text);
+//                logger.warning(text);
+            }
         }
     }
 

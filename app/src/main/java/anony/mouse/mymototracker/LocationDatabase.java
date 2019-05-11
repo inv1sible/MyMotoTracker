@@ -1,4 +1,4 @@
-package anony.mouse.mototracker;
+package anony.mouse.mymototracker;
 
 import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.arch.persistence.room.Database;

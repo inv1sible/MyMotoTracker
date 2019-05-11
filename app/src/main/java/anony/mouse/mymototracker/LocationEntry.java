@@ -1,4 +1,4 @@
-package anony.mouse.mototracker;
+package anony.mouse.mymototracker;
 
 import android.arch.persistence.room.Embedded;
 import android.arch.persistence.room.Entity;
@@ -9,6 +9,13 @@ class OBDInfos {
     public Double machinerpm;
     public Double machinethrottle;
     public Double machineload;
+
+    public OBDInfos(double machineSpeed, double machinerpm, double machinethrottle, double machineload){
+        this.machineSpeed = machineSpeed;
+        this.machinerpm = machinerpm;
+        this.machinethrottle = machinethrottle;
+        this.machineload = machineload;
+    }
 }
 
 @Entity(tableName = "locations")
@@ -39,10 +46,7 @@ public class LocationEntry {
         this.accuracy = accuracy;
         this.rolling = rolling;
         this.deviceID = deviceID;
-        obdInfos.machineSpeed = null;
-        obdInfos.machinerpm = null;
-        obdInfos.machinethrottle = null;
-        obdInfos.machineload = null;
+        OBDInfos obdInfos = new OBDInfos(-1d,-1d,-1d,-1d);
     }
 }
 

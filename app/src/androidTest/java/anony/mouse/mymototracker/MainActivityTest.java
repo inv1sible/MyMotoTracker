@@ -1,6 +1,4 @@
-package anony.mouse.mototracker;
-
-import static org.junit.Assert.*;
+package anony.mouse.mymototracker;
 
 public class MainActivityTest {
 

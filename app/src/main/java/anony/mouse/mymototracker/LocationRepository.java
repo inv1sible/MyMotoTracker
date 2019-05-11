@@ -1,4 +1,4 @@
-package anony.mouse.mototracker;
+package anony.mouse.mymototracker;
 
 import android.annotation.SuppressLint;
 import android.arch.lifecycle.LiveData;
@@ -56,5 +56,9 @@ public class LocationRepository {
 
     public LiveData<Double> getAvgSpeed() {
         return locationDatabase.daoAccess().getAvgSpeed();
+    }
+
+    public void close() {
+        if(locationDatabase != null){ locationDatabase.close(); }
     }
 }
