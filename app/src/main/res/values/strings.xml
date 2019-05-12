@@ -17,4 +17,6 @@
     <string name="textMaxSpeed">999</string>
     <string name="textLeftAngle">25°</string>
     <string name="textRightAngle">25°</string>
+    <string name="load_waypoints">Load Waypoints</string>
+    <string name="textviewWayPointInfos">Lat, Lon, km/h, 0°</string>
 </resources>

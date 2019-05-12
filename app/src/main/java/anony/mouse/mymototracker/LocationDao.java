@@ -14,7 +14,7 @@ public interface LocationDao {
     LiveData<Integer> getLocationCount();
 
     @Query("SELECT * FROM locations")
-    List<LocationEntry> getAllLocations();
+    LiveData<List<LocationEntry>> getAllLocations();
 
 //    @Query("SELECT * FROM locations WHERE uid IN (:deviceIds)")
 //    List<LocationEntry> loadAllLocationsByDeviceIds(int[] deviceIds);
@@ -28,8 +28,11 @@ public interface LocationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(LocationEntry location);
 
-    @Query("DELETE FROM locations")
+    @Query("DELETE FROM locations WHERE routeID IS NULL")
     void clearCache();
+
+    @Query("UPDATE locations SET routeID = (SELECT max(routeID) from locations) + 1 WHERE routeID IS NULL;")
+    void saveRoute();
 
     @Query("SELECT AVG(speed) FROM locations")
     LiveData<Double> getAvgSpeed();

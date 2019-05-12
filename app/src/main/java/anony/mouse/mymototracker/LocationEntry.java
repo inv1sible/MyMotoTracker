@@ -4,6 +4,8 @@ import android.arch.persistence.room.Embedded;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 
+import com.google.android.gms.maps.model.LatLng;
+
 class OBDInfos {
     public Double machineSpeed;
     public Double machinerpm;
@@ -46,7 +48,11 @@ public class LocationEntry {
         this.accuracy = accuracy;
         this.rolling = rolling;
         this.deviceID = deviceID;
-        OBDInfos obdInfos = new OBDInfos(-1d,-1d,-1d,-1d);
+        OBDInfos obdInfos = new OBDInfos(0d, 0d, 0d, 0d);
+    }
+
+    public LatLng getLatLng() {
+        return new LatLng(this.latitude, this.longitude);
     }
 }
 

@@ -3,6 +3,7 @@ package anony.mouse.mymototracker;
 import android.Manifest;
 import android.arch.lifecycle.Observer;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -35,6 +36,7 @@ import static java.lang.String.format;
 
 public class MainActivity extends AppCompatActivity implements LocationListener, SensorEventListener {
 
+    public static final String EXTRA_MESSAGE = "anony.mouse.mymototracker.MESSAGE";
     private final int MY_PERMISSIONS_ACCESS_FINE_LOCATION = 1;
     private SensorManager mySensorManager;
     private Sensor myAccelerometer;
@@ -65,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -158,6 +159,23 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         super.onPause();
     }
 
+    protected static double toKMH(double speed) {
+        double speedInKMH = speed * 3.6;
+        if (Double.isNaN(speedInKMH) || Double.isInfinite(speedInKMH)) {
+            speedInKMH = 0d;
+        }
+        return speedInKMH;
+    }
+
+    /**
+     * Called when the user taps the buttonSaveRoute
+     */
+    public void onSaveRoute(View view) {
+        LocationRepository locationRepository = new LocationRepository(getApplicationContext());
+        locationRepository.saveRoute();
+
+    }
+
     private void enableLocationManager() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_ACCESS_FINE_LOCATION);
@@ -195,59 +213,16 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         }
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            myGravity = event.values;
-
-            final float alpha = 0.8f;
-
-            myFilteredGravity[0] = alpha * myFilteredGravity[0] + (1 - alpha) * event.values[0];
-            myFilteredGravity[1] = alpha * myFilteredGravity[1] + (1 - alpha) * event.values[1];
-            myFilteredGravity[2] = alpha * myFilteredGravity[2] + (1 - alpha) * event.values[2];
-
-            double Vx = event.values[0] - myFilteredGravity[0];
-            double Vy = event.values[1] - myFilteredGravity[1];
-            double Vz = event.values[2] - myFilteredGravity[2];
-
-            double Vges = sqrt(Vx * Vx + Vy * Vy + Vz * Vz);
-
-            String message = format(Locale.GERMANY,
-                    "Vx=%.2f m/s \nVy=%.2f m/s \nVz=%.2f m/s \nVges=%.2f m/s^2",
-                    Vx, Vy, Vz, Vges);
-            Log.d("orientation", message);
-            myTextViewAcceleration3D.setText(message);
-
-            //myGravity = event.values;
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            myGeomagnetic = event.values;
-        }
-        if (myGravity != null && myGeomagnetic != null) {
-            float[] R = new float[9];
-            float[] I = new float[9];
-            boolean success = SensorManager.getRotationMatrix(R, I, myGravity, myGeomagnetic);
-            if (success) {
-                float[] orientation = new float[3];
-                SensorManager.getOrientation(R, orientation);
-                double azimuth = toDegrees(orientation[0]);
-                double pitch = toDegrees(orientation[1]);
-                double roll = toDegrees(orientation[2]);
-                if (pitch > -50d && pitch < 0d) {
-                    rollingAngleRaw = roll;
-                    rollingAngleCalibrated = roll - rollingAngleOffset;
-                    if (rollingAngleCalibrated < -90d) {
-                        rollingAngleCalibrated = -90d;
-                    }
-                    if (rollingAngleCalibrated > 90d) {
-                        rollingAngleCalibrated = 90d;
-                    }
-                } else {
-                    rollingAngleCalibrated = Double.NaN;
-                }
-                String message = format(Locale.GERMANY, "azimuth=%.0f, pitch=%.0f, roll=%.0f", azimuth, pitch, roll);
-                Log.d("orientation", message);
-            }
-        }
+    /**
+     * Called when the user taps the ShowMapsActivity button
+     */
+    public void onShowMapsActivity(View view) {
+        Intent intent = new Intent(this, TracksActivity.class);
+//        EditText editText = (EditText) findViewById(R.id.editText);
+//        String message = editText.getText().toString();
+//        intent.putExtra(EXTRA_MESSAGE, message);
+        startActivity(intent);
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
     }
 
     @Override
@@ -349,12 +324,59 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         }
     }
 
-    private double toKMH(double speed) {
-        double speedInKMH = speed * 3.6;
-        if (Double.isNaN(speedInKMH) || Double.isInfinite(speedInKMH)) {
-            speedInKMH = 0d;
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            myGravity = event.values;
+
+            final float alpha = 0.8f;
+
+            myFilteredGravity[0] = alpha * myFilteredGravity[0] + (1 - alpha) * event.values[0];
+            myFilteredGravity[1] = alpha * myFilteredGravity[1] + (1 - alpha) * event.values[1];
+            myFilteredGravity[2] = alpha * myFilteredGravity[2] + (1 - alpha) * event.values[2];
+
+            double Vx = event.values[0] - myFilteredGravity[0];
+            double Vy = event.values[1] - myFilteredGravity[1];
+            double Vz = event.values[2] - myFilteredGravity[2];
+
+            double Vges = sqrt(Vx * Vx + Vy * Vy + Vz * Vz);
+
+            String message = format(Locale.GERMANY,
+                    "Vx=%.2f m/s \nVy=%.2f m/s \nVz=%.2f m/s \nVges=%.2f m/s^2",
+                    Vx, Vy, Vz, Vges);
+            Log.d("orientation", message);
+            myTextViewAcceleration3D.setText(message);
+
+            //myGravity = event.values;
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            myGeomagnetic = event.values;
         }
-        return speedInKMH;
+        if (myGravity != null && myGeomagnetic != null) {
+            float[] R = new float[9];
+            float[] I = new float[9];
+            boolean success = SensorManager.getRotationMatrix(R, I, myGravity, myGeomagnetic);
+            if (success) {
+                float[] orientation = new float[3];
+                SensorManager.getOrientation(R, orientation);
+                double azimuth = toDegrees(orientation[0]);
+                double pitch = toDegrees(orientation[1]);
+                double roll = toDegrees(orientation[2]);
+                if (pitch > -90d && pitch < 0d) {
+                    rollingAngleRaw = roll;
+                    rollingAngleCalibrated = roll - rollingAngleOffset;
+                    if (rollingAngleCalibrated < -90d) {
+                        rollingAngleCalibrated = -90d;
+                    }
+                    if (rollingAngleCalibrated > 90d) {
+                        rollingAngleCalibrated = 90d;
+                    }
+                } else {
+                    rollingAngleCalibrated = 0d;
+                }
+                String message = format(Locale.GERMANY, "azimuth=%.0f, pitch=%.0f, roll=%.0f", azimuth, pitch, roll);
+                Log.d("orientation", message);
+            }
+        }
     }
 
     @Override

@@ -6,6 +6,8 @@ import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.os.AsyncTask;
 
+import java.util.List;
+
 public class LocationRepository {
 
     private String DB_NAME = "cache.db";
@@ -31,12 +33,27 @@ public class LocationRepository {
         return locationDatabase.daoAccess().getLocationCount();
     }
 
+    public LiveData<List<LocationEntry>> getAllLocations() {
+        return locationDatabase.daoAccess().getAllLocations();
+    }
+
     @SuppressLint("StaticFieldLeak")
     public void clearCache() {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
                 locationDatabase.daoAccess().clearCache();
+                return null;
+            }
+        }.execute();
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    public void saveRoute() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                locationDatabase.daoAccess().saveRoute();
                 return null;
             }
         }.execute();
@@ -61,4 +78,6 @@ public class LocationRepository {
     public void close() {
         if(locationDatabase != null){ locationDatabase.close(); }
     }
+
+
 }
