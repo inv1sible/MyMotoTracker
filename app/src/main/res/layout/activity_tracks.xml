@@ -30,23 +30,13 @@
         app:layout_constraintBottom_toBottomOf="@+id/mapView"
         tools:layout_editor_absoluteX="98dp" />
 
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:onClick="onLoadPoints"
-        android:text="@string/load_waypoints"
-        app:layout_constraintStart_toStartOf="@+id/mapView"
-        app:layout_constraintTop_toTopOf="@+id/mapView" />
-
     <TextView
         android:id="@+id/textViewWayPointInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="8dp"
+        android:background="#CCFFFFFF"
         android:text="@string/textviewWayPointInfos"
         android:textAlignment="textEnd"
         android:textColor="@color/primary_text_light"

@@ -31,7 +31,7 @@ public interface LocationDao {
     @Query("DELETE FROM locations WHERE routeID IS NULL")
     void clearCache();
 
-    @Query("UPDATE locations SET routeID = (SELECT max(routeID) from locations) + 1 WHERE routeID IS NULL;")
+    @Query("UPDATE locations SET routeID = (SELECT CASE WHEN MAX(routeID) IS NULL THEN 0 ELSE (SELECT MAX(routeID) from locations) END + 1 FROM locations) WHERE routeID IS NULL;")
     void saveRoute();
 
     @Query("SELECT AVG(speed) FROM locations")

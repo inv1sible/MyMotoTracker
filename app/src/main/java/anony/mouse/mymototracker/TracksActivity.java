@@ -13,7 +13,6 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +26,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -45,8 +45,6 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
     private PolylineOptions polylineOptions;
     private List<LatLng> trackpoints;
     private List<LocationEntry> waypoints;
-    private Button buttonPreviousWaypoint;
-    private Button buttonNextWaypoint;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -93,7 +91,6 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
                 }
             }
         });
-
     }
 
     private void addWayPoint(int position) {
@@ -101,18 +98,22 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
         mMap.addPolyline(polylineOptions);
         LocationEntry location = waypoints.get(position);
         LatLng point = location.getLatLng();
+        String pattern = "yyyy-MM-dd HH:mm:ss";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        String date = simpleDateFormat.format(location.getTimestamp());
         markerOptions.position(point);
-        markerOptions.title("Position");
-        String waypointText = format(Locale.GERMANY, "%.2f, %.2f, %.0fkm/h, %.0fkm/h, %.0f°",
+        markerOptions.title(date);
+        String waypointText = format(Locale.GERMANY, "%.4f, %.4f, %.0fkm/h, %.0fkm/h, %.0f°",
                 point.latitude, point.latitude,
-                MainActivity.toKMH(location.speed), MainActivity.toKMH(location.acceleration),
-                location.rolling);
+                MainActivity.toKMH(location.getSpeed()), MainActivity.toKMH(location.getAcceleration()),
+                location.getRollingAngle());
         markerOptions.snippet(waypointText);
         mMap.addMarker(markerOptions);
-        String textViewMessage = format(Locale.GERMANY, "%.2f, %.2f, \n%.0fkm/h, %.0fkm/h, %.0f°",
-                point.latitude, point.latitude,
-                MainActivity.toKMH(location.speed), MainActivity.toKMH(location.acceleration),
-                location.rolling);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(point, mMap.getCameraPosition().zoom));
+        String textViewMessage = format(Locale.GERMANY, "%s\n%.6f, %.6f\n%.0fkm/h, %.0fkm/h, %.0f°",
+                date, point.latitude, point.longitude,
+                MainActivity.toKMH(location.getSpeed()), MainActivity.toKMH(location.getAcceleration()),
+                location.getRollingAngle());
         waypointInfoText.setText(textViewMessage);
     }
 
@@ -151,6 +152,7 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
         mMap.addMarker(new MarkerOptions().position(koblenz).title("Deutsches Eck"));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(koblenz, 10));
         mapView.onResume();
+        onLoadPoints(null);
     }
 
     public void onLoadPoints(View view) {
@@ -163,6 +165,7 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
                         seekBar.setMax(locationEntries.size());
                         mMap.clear();
                         addTrackPoints();
+                        onNextWayPointClick(null);
                     }
                 });
     }
