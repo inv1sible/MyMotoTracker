@@ -48,6 +48,16 @@ public class LocationRepository {
         }.execute();
     }
 
+    public void clearLocations() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                locationDatabase.daoAccess().clearLocations();
+                return null;
+            }
+        }.execute();
+    }
+
     @SuppressLint("StaticFieldLeak")
     public void saveRoute() {
         new AsyncTask<Void, Void, Void>() {
@@ -78,6 +88,4 @@ public class LocationRepository {
     public void close() {
         if(locationDatabase != null){ locationDatabase.close(); }
     }
-
-
 }

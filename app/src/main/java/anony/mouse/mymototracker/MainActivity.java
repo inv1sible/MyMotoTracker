@@ -125,17 +125,20 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 LocationRepository locationRepository = new LocationRepository(getApplicationContext());
                 locationRepository.clearCache();
                 locationRepository.close();
-                myTextViewLocation.setText("");
-                myTextViewSpeed.setText("0");
-                myTextViewSpeedAvg.setText("0");
-                myTextViewSpeedMax.setText("0");
-                myTextViewAcceleration.setText("0");
-                myTextViewAccuracy.setText("0m");
-                myTextViewRollingAngle.setText("0°");
-                myTextViewRollingAngleLeft.setText("0°");
-                myTextViewRollingAngleRight.setText("0°");
-                myTextViewLocationEntries.setText("0 waypoints");
                 updateTextViews();
+            }
+        });
+
+        myClearCacheButton.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                LocationRepository locationRepository = new LocationRepository(getApplicationContext());
+                locationRepository.clearLocations();
+                locationRepository.close();
+                Toast toast = Toast.makeText(getApplicationContext(), "All locations deleted", Toast.LENGTH_LONG);
+                toast.show();
+                updateTextViews();
+                return true;
             }
         });
 
@@ -279,6 +282,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     }
 
     private void updateTextViews() {
+        myTextViewLocation.setText("");
+        myTextViewSpeed.setText("0");
+        myTextViewAcceleration.setText("0");
+        myTextViewAccuracy.setText("0m");
+        myTextViewRollingAngle.setText("0°");
         try {
             LocationRepository locationRepository = new LocationRepository(getApplicationContext());
             locationRepository.getLocationsCount().observe(this,
