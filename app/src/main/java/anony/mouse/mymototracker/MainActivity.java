@@ -253,6 +253,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         if (lastLocation != null) {
             acceleration = (speed - lastLocation.getSpeed()) / ((location.getTime() - lastLocation.getTime()) / 1000);
         }
+        if (Float.isInfinite(acceleration) || Float.isNaN(acceleration)){
+            acceleration = 0;
+        }
         String message = format(Locale.GERMANY, "%s: lat=%.2f, lon=%.2f, \nspeed=%.2f km/h, accel=%.2f m/s^2, \ndir=%.2f, acc=%.2f m",
                 strTimestamp,
                 latitude,
