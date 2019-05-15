@@ -25,6 +25,8 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import static java.lang.Math.sqrt;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private TextView myTextViewRollingAngle;
     private TextView myTextViewRollingAngleLeft;
     private TextView myTextViewRollingAngleRight;
+    private TextView myTextViewOrientation;
     private TextView myTextViewAcceleration;
     private TextView myTextViewAcceleration3D;
     private TextView myTextViewAccuracy;
@@ -61,6 +64,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private double rollingAngleRaw;
     private double rollingAngleOffset;
     private double rollingAngleCalibrated;
+    private List<LocationEntry> wayPoints;
+    private double myMaxSpeed = 0;
+    private double myMinRolling;
+    private double myMaxRolling;
 
 //    Logger logger;
 //    FileHandler fh;
@@ -98,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myTextViewSpeed = findViewById(R.id.textViewSpeed);
         myTextViewSpeedAvg = findViewById(R.id.textViewSpeedAvg);
         myTextViewSpeedMax = findViewById(R.id.textViewSpeedMax);
+        myTextViewOrientation = findViewById(R.id.textViewOrientation);
         myTextViewAcceleration = findViewById(R.id.textViewAcceleration);
         myTextViewAcceleration3D = findViewById(R.id.textViewAcceleration3D);
         myTextViewAccuracy = findViewById(R.id.textViewAccuracy);
@@ -125,7 +133,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 LocationRepository locationRepository = new LocationRepository(getApplicationContext());
                 locationRepository.clearCache();
                 locationRepository.close();
-                updateTextViews();
+                resetTextViews();
+                //updateTextViews();
             }
         });
 
@@ -135,9 +144,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 LocationRepository locationRepository = new LocationRepository(getApplicationContext());
                 locationRepository.clearLocations();
                 locationRepository.close();
+                resetTextViews();
+                //updateTextViews();
                 Toast toast = Toast.makeText(getApplicationContext(), "All locations deleted", Toast.LENGTH_LONG);
                 toast.show();
-                updateTextViews();
                 return true;
             }
         });
@@ -154,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myMagnetometer = mySensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         myLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-        updateTextViews();
+        //updateTextViews();
 
     }
 
@@ -256,7 +266,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         if (Float.isInfinite(acceleration) || Float.isNaN(acceleration)){
             acceleration = 0;
         }
-        String message = format(Locale.GERMANY, "%s: lat=%.2f, lon=%.2f, \nspeed=%.2f km/h, accel=%.2f m/s^2, \ndir=%.2f, acc=%.2f m",
+        String message = format(Locale.GERMANY,
+                "%s: lat=%.2f, lon=%.2f, \nspeed=%.2f km/h, accel=%.2f m/s^2, \ndir=%.2f, acc=%.2f m",
                 strTimestamp,
                 latitude,
                 longitude,
@@ -264,39 +275,86 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 acceleration,
                 direction,
                 accuracy);
-        //Log.d("location", message);
+        Log.d("location", message);
         myTextViewLocation.setText(message);
-        myTextViewSpeed.setText(String.format("%.0f", toKMH(speed)));
-        // myTextViewSpeedMax needs to be observed from DB (see below)
-        myTextViewAcceleration.setText(String.format("%.0f", acceleration));
-        myTextViewAccuracy.setText(String.format("%.2f", accuracy) + " m");
-        myTextViewRollingAngle.setText(String.format("%.1f", rollingAngleCalibrated) + "°");
-        // myTextViewRollingAngleLeft and -Right need to be observed from DB (see below)
-        if (toKMH(speed) >= 5) {
+
+        if (toKMH(speed) >= 2) {
             lastLocation = location;
             LocationEntry locationEntry = new LocationEntry(timestamp, latitude, longitude,
                     speed, acceleration, myAcceleration[0], myAcceleration[1], myAcceleration[2],
                     accuracy, rollingAngleCalibrated);
             LocationRepository locationRepository = new LocationRepository(getApplicationContext());
+            if (wayPoints == null) {
+                wayPoints = new ArrayList<LocationEntry>();
+            }
+            wayPoints.add(locationEntry);
             locationRepository.insertLocation(locationEntry);
             locationRepository.close();
-            updateTextViews();
+            updateTextViews(locationEntry);
         }
     }
 
-    private void updateTextViews() {
+    private void resetTextViews() {
+        wayPoints.clear();
         myTextViewLocation.setText("");
+        myTextViewAccuracy.setText("0 m");
+        myTextViewRollingAngle.setText("0°");
+        myTextViewLocationEntries.setText("0 trackpoints");
         myTextViewSpeed.setText("0");
+        myTextViewSpeedAvg.setText("0");
+        myTextViewSpeedMax.setText("0");
         myTextViewAcceleration.setText("0");
         myTextViewAccuracy.setText("0m");
         myTextViewRollingAngle.setText("0°");
+        myTextViewRollingAngleLeft.setText("0°");
+        myTextViewRollingAngleRight.setText("0°");
+        myMaxSpeed = 0;
+        myMinRolling = 0;
+        myMaxRolling = 0;
+    }
+
+    private void updateTextViews(LocationEntry location) {
+        myTextViewSpeed.setText(String.format("%.0f", toKMH(location.getSpeed())));
+        // myTextViewSpeedMax needs to be observed from DB (see below)
+        myTextViewAcceleration.setText(String.format("%.0f", location.getAcceleration()));
+        myTextViewAccuracy.setText(String.format("%.2f", location.getAccuracy()) + " m");
+        myTextViewRollingAngle.setText(String.format("%.0f", rollingAngleCalibrated) + "°");
+        // myTextViewRollingAngleLeft and -Right need to be observed from DB (see below)
+
+        double mySpeed = location.speed;
+        double myRolling = location.rolling;
+        if (mySpeed > myMaxSpeed) {
+            myTextViewSpeedMax.setText(String.format("%.0f", toKMH(mySpeed)));
+        }
+        if (myRolling > myMaxRolling) {
+            myMaxRolling = myRolling;
+            myTextViewRollingAngleRight.setText(String.format("%.0f", myRolling) + "°");
+        }
+        if (myRolling < myMinRolling) {
+            myMinRolling = myRolling;
+            myTextViewRollingAngleLeft.setText(String.format("%.0f", Math.abs(myRolling)) + "°");
+        }
+        myTextViewLocationEntries.setText(wayPoints.size() + " trackpoints");
+        updateAvgSpeed();
+    }
+
+    private void updateAvgSpeed() {
+        double myAverage = 0;
+        for (LocationEntry waypoint : wayPoints) {
+            myAverage += waypoint.getSpeed();
+        }
+        myAverage = myAverage / wayPoints.size();
+        myTextViewSpeedAvg.setText(String.format("%.0f", toKMH(myAverage)));
+    }
+
+    private void updateTextViews() {
         try {
             LocationRepository locationRepository = new LocationRepository(getApplicationContext());
             locationRepository.getLocationsCount().observe(this,
                     new Observer<Integer>() {
                         @Override
                         public void onChanged(Integer count) {
-                            myTextViewLocationEntries.setText(count + " waypoints");
+                            myTextViewLocationEntries.setText(count + " trackpoints");
                         }
                     });
             locationRepository.getAvgSpeed().observe(this,
@@ -388,6 +446,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 double azimuth = toDegrees(orientation[0]);
                 double pitch = toDegrees(orientation[1]);
                 double roll = toDegrees(orientation[2]);
+                myTextViewOrientation.setText(String.format(Locale.GERMANY, "a: %.0f°, p: %.0f, r: %.0f", azimuth, pitch, roll));
                 // Calculate rolling angle only when parallel to the ground (0) and -80 degree turned towards viewer
                 if (pitch > -80d && pitch < 0d) {
                     rollingAngleRaw = roll;
