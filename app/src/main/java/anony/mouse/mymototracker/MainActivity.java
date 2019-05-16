@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -66,8 +67,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private double rollingAngleCalibrated;
     private List<LocationEntry> wayPoints;
     private double myMaxSpeed = 0;
-    private double myMinRolling;
-    private double myMaxRolling;
+    private double myMinRolling = 0;
+    private double myMaxRolling = 0;
+    private double myAverageSpeed = 0;
 
 //    Logger logger;
 //    FileHandler fh;
@@ -156,6 +158,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             public void onClick(View v) {
                 Log.d("myTextViewRollingAngle.onClick", "Offset= " + rollingAngleCalibrated);
                 rollingAngleOffset = rollingAngleRaw;
+                resetTextViews();
             }
         });
 
@@ -278,7 +281,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         Log.d("location", message);
         myTextViewLocation.setText(message);
 
-        if (toKMH(speed) >= 2) {
+        if (toKMH(speed) >= 0) {
             lastLocation = location;
             LocationEntry locationEntry = new LocationEntry(timestamp, latitude, longitude,
                     speed, acceleration, myAcceleration[0], myAcceleration[1], myAcceleration[2],
@@ -304,10 +307,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myTextViewSpeedAvg.setText("0");
         myTextViewSpeedMax.setText("0");
         myTextViewAcceleration.setText("0");
-        myTextViewAccuracy.setText("0m");
+        myTextViewAccuracy.setText("0 m");
         myTextViewRollingAngle.setText("0°");
         myTextViewRollingAngleLeft.setText("0°");
         myTextViewRollingAngleRight.setText("0°");
+        myAverageSpeed = 0;
         myMaxSpeed = 0;
         myMinRolling = 0;
         myMaxRolling = 0;
@@ -315,15 +319,17 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
 
     private void updateTextViews(LocationEntry location) {
         myTextViewSpeed.setText(String.format("%.0f", toKMH(location.getSpeed())));
-        // myTextViewSpeedMax needs to be observed from DB (see below)
         myTextViewAcceleration.setText(String.format("%.0f", location.getAcceleration()));
         myTextViewAccuracy.setText(String.format("%.2f", location.getAccuracy()) + " m");
         myTextViewRollingAngle.setText(String.format("%.0f", rollingAngleCalibrated) + "°");
-        // myTextViewRollingAngleLeft and -Right need to be observed from DB (see below)
 
         double mySpeed = location.speed;
         double myRolling = location.rolling;
+        myAverageSpeed += mySpeed;
+        myTextViewSpeedAvg.setText(String.format("%.0f", toKMH(myAverageSpeed/wayPoints.size())));
+        //updateAvgSpeed();
         if (mySpeed > myMaxSpeed) {
+            myMaxSpeed = mySpeed;
             myTextViewSpeedMax.setText(String.format("%.0f", toKMH(mySpeed)));
         }
         if (myRolling > myMaxRolling) {
@@ -335,7 +341,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             myTextViewRollingAngleLeft.setText(String.format("%.0f", Math.abs(myRolling)) + "°");
         }
         myTextViewLocationEntries.setText(wayPoints.size() + " trackpoints");
-        updateAvgSpeed();
     }
 
     private void updateAvgSpeed() {
@@ -443,10 +448,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             if (success) {
                 float[] orientation = new float[3];
                 SensorManager.getOrientation(R, orientation);
+                Display display = ((WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+                int screenOrientation = display.getRotation();
                 double azimuth = toDegrees(orientation[0]);
                 double pitch = toDegrees(orientation[1]);
                 double roll = toDegrees(orientation[2]);
-                myTextViewOrientation.setText(String.format(Locale.GERMANY, "a: %.0f°, p: %.0f, r: %.0f", azimuth, pitch, roll));
+                myTextViewOrientation.setText(String.format(Locale.GERMANY, "o: %d, a: %.0f°, p: %.0f°, r: %.0f°", screenOrientation, azimuth, pitch, roll));
                 // Calculate rolling angle only when parallel to the ground (0) and -80 degree turned towards viewer
                 if (pitch > -80d && pitch < 0d) {
                     rollingAngleRaw = roll;

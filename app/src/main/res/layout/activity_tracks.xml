@@ -21,13 +21,17 @@
         android:id="@+id/mapView"
         android:name="com.google.android.gms.maps.MapFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/seekBar"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.37" />
 
     <SeekBar
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        app:layout_constraintBottom_toBottomOf="@+id/mapView"
+        android:layout_height="30dp"
+        android:background="#80000000"
+        app:layout_constraintBottom_toBottomOf="parent"
         tools:layout_editor_absoluteX="98dp" />
 
     <TextView
@@ -47,7 +51,7 @@
 
     <Button
         android:id="@+id/buttonDecWayPoint"
-        android:layout_width="70dp"
+        android:layout_width="60dp"
         android:layout_height="48dp"
         android:layout_marginStart="8dp"
         android:onClick="onPreviousWayPointClick"
@@ -57,7 +61,7 @@
 
     <Button
         android:id="@+id/buttonIncWayPoint"
-        android:layout_width="70dp"
+        android:layout_width="60dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:onClick="onNextWayPointClick"
