@@ -16,7 +16,6 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -448,12 +447,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             if (success) {
                 float[] orientation = new float[3];
                 SensorManager.getOrientation(R, orientation);
-                Display display = ((WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-                int screenOrientation = display.getRotation();
                 double azimuth = toDegrees(orientation[0]);
                 double pitch = toDegrees(orientation[1]);
                 double roll = toDegrees(orientation[2]);
-                myTextViewOrientation.setText(String.format(Locale.GERMANY, "o: %d, a: %.0f°, p: %.0f°, r: %.0f°", screenOrientation, azimuth, pitch, roll));
+                myTextViewOrientation.setText(String.format(Locale.GERMANY, "a: %.0f°, p: %.0f°, r: %.0f°", azimuth, pitch, roll));
                 // Calculate rolling angle only when parallel to the ground (0) and -80 degree turned towards viewer
                 if (pitch > -80d && pitch < 0d) {
                     rollingAngleRaw = roll;

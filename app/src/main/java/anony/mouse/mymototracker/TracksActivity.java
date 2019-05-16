@@ -17,12 +17,14 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -118,13 +120,29 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     private void addTrackPoints() {
+        if (waypoints.size() > 0) {
+            LatLngBounds.Builder builder = new LatLngBounds.Builder();
+
         for (LocationEntry point : waypoints) {
             //if(point.routeID == null){
             trackpoints.add(point.getLatLng());
+            builder.include(point.getLatLng());
             //}
         }
         polylineOptions.addAll(trackpoints);
         mMap.addPolyline(polylineOptions);
+
+        LatLngBounds bounds = builder.build();
+
+        int width = getResources().getDisplayMetrics().widthPixels;
+        int height = getResources().getDisplayMetrics().heightPixels;
+        int padding = (int) (width * 0.10);
+
+        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, width, height, padding);
+
+        mMap.animateCamera(cu);
+        }
+
     }
 
     @Override
