@@ -4,7 +4,7 @@
     <string name="map_not_ready">Karte (noch) nicht verfügbar.</string>
     <string name="location_information">Location information</string>
     <string name="textAcceleration">0</string>
-    <string name="textAcceleration3D">0 m/s^2\n0 m/s^2\n0 m/s^2</string>
+    <string name="textAcceleration3D">0 m/s^2\n0 m/s^2\n0 m/s^2\n0 m/s^2</string>
     <string name="textAccuracy">0 m</string>
     <string name="textCurrentAngle">0°</string>
     <string name="tracking_status">Tracking status</string>
@@ -20,4 +20,6 @@
     <string name="textRightAngle">0°</string>
     <string name="load_waypoints">Load Waypoints</string>
     <string name="textviewWayPointInfos">Lat, Lon, km/h, 0°</string>
+    <string name="save_trip">Save Trip</string>
+    <string name="show_tracks">Show Tracks</string>
 </resources>

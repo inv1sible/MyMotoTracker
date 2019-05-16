@@ -11,7 +11,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -25,6 +24,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -43,10 +43,17 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
     private GoogleMap mMap;
     private MapFragment mapView;
     private SeekBar seekBar;
-    private MarkerOptions markerOptions;
     private PolylineOptions polylineOptions;
     private List<LatLng> trackpoints;
     private List<LocationEntry> waypoints;
+    private Marker currentWaypoint;
+
+    public TracksActivity() {
+        trackpoints = new ArrayList<LatLng>();
+        polylineOptions = new PolylineOptions();
+        polylineOptions.color(Color.RED);
+        polylineOptions.width(10);
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -58,14 +65,7 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
         Intent intent = getIntent();
         String message = intent.getStringExtra(MainActivity.EXTRA_MESSAGE);
 
-        trackpoints = new ArrayList<LatLng>();
-
         checkLocationPermission();
-
-        markerOptions = new MarkerOptions();
-        polylineOptions = new PolylineOptions();
-        polylineOptions.color(Color.RED);
-        polylineOptions.width(10);
 
         mapView = (MapFragment) getFragmentManager().findFragmentById(R.id.mapView);
         mapView.getMapAsync(this);
@@ -89,20 +89,22 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 Toast.makeText(getApplicationContext(), String.valueOf(progress), Toast.LENGTH_LONG).show();
                 if (trackpoints.size() > progress) {
-                    addWayPoint(progress);
+                    showWayPoint(progress);
                 }
             }
         });
     }
 
-    private void addWayPoint(int position) {
-        mMap.clear();
-        mMap.addPolyline(polylineOptions);
+    private void showWayPoint(int position) {
+        if (currentWaypoint != null) {
+            currentWaypoint.remove();
+        }
         LocationEntry location = waypoints.get(position);
         LatLng point = location.getLatLng();
         String pattern = "yyyy-MM-dd HH:mm:ss";
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
         String date = simpleDateFormat.format(location.getTimestamp());
+        MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(point);
         markerOptions.title(date);
         String waypointText = format(Locale.GERMANY, "%.4f, %.4f, %.0fkm/h, %.0fkm/h, %.0f°",
@@ -110,8 +112,8 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
                 MainActivity.toKMH(location.getSpeed()), MainActivity.toKMH(location.getAcceleration()),
                 location.getRollingAngle());
         markerOptions.snippet(waypointText);
-        mMap.addMarker(markerOptions);
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(point, mMap.getCameraPosition().zoom));
+        currentWaypoint = mMap.addMarker(markerOptions);
+        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(point, mMap.getCameraPosition().zoom));
         String textViewMessage = format(Locale.GERMANY, "%s\n%.6f, %.6f\n%.0fkm/h, %.0fkm/h, %.0f°",
                 date, point.latitude, point.longitude,
                 MainActivity.toKMH(location.getSpeed()), MainActivity.toKMH(location.getAcceleration()),
@@ -122,27 +124,34 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
     private void addTrackPoints() {
         if (waypoints.size() > 0) {
             LatLngBounds.Builder builder = new LatLngBounds.Builder();
-
-        for (LocationEntry point : waypoints) {
-            //if(point.routeID == null){
-            trackpoints.add(point.getLatLng());
-            builder.include(point.getLatLng());
-            //}
+            for (LocationEntry point : waypoints) {
+                trackpoints.add(point.getLatLng());
+                builder.include(point.getLatLng());
+            }
+            polylineOptions.addAll(trackpoints);
+            mMap.addPolyline(polylineOptions);
+            LatLngBounds bounds = builder.build();
+            int width = getResources().getDisplayMetrics().widthPixels;
+            int height = getResources().getDisplayMetrics().heightPixels;
+            int padding = (int) (width * 0.10);
+            CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, width, height, padding);
+            mMap.moveCamera(cu);
         }
-        polylineOptions.addAll(trackpoints);
-        mMap.addPolyline(polylineOptions);
+    }
 
-        LatLngBounds bounds = builder.build();
-
-        int width = getResources().getDisplayMetrics().widthPixels;
-        int height = getResources().getDisplayMetrics().heightPixels;
-        int padding = (int) (width * 0.10);
-
-        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, width, height, padding);
-
-        mMap.animateCamera(cu);
+    private void addTrackPoints(LatLngBounds bounds) {
+        if (waypoints.size() > 0) {
+            mMap.clear();
+            trackpoints.clear();
+            for (LocationEntry point : waypoints) {
+                if (bounds.contains(point.getLatLng())) {
+                    trackpoints.add(point.getLatLng());
+                }
+            }
+            polylineOptions.addAll(trackpoints);
+            seekBar.setMax(trackpoints.size());
+            mMap.addPolyline(polylineOptions);
         }
-
     }
 
     @Override
@@ -153,8 +162,6 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
     @Override
     public void onMapReady(GoogleMap gMap) {
         mMap = gMap;
-        //mMap.setMinZoomPreference(12);
-        //mMap.setIndoorEnabled(true);
 
         UiSettings uiSettings = mMap.getUiSettings();
         uiSettings.setIndoorLevelPickerEnabled(true);
@@ -163,12 +170,17 @@ public class TracksActivity extends AppCompatActivity implements OnMapReadyCallb
         uiSettings.setCompassEnabled(true);
         uiSettings.setZoomControlsEnabled(true);
 
-        Log.d("111", "compass: " + uiSettings.isCompassEnabled());
+        GoogleMap.OnCameraIdleListener onCameraIdleListener = new GoogleMap.OnCameraIdleListener() {
+            @Override
+            public void onCameraIdle() {
+                LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+                if (waypoints != null) {
+                    //addTrackPoints(bounds);
+                }
+            }
+        };
+        mMap.setOnCameraIdleListener(onCameraIdleListener);
 
-        // Adds a marker in Koblenz, Germany and moves the camera.
-        LatLng koblenz = new LatLng(50.362108, 7.604742);
-        mMap.addMarker(new MarkerOptions().position(koblenz).title("Deutsches Eck"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(koblenz, 10));
         mapView.onResume();
         onLoadPoints(null);
     }

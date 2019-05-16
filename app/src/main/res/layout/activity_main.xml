@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     tools:context=".MainActivity">
 
     <TextView
@@ -21,12 +21,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="80dp"
+        android:layout_marginTop="50dp"
+        android:layout_marginBottom="16dp"
         android:text="@string/textCurrentSpeed"
         android:textAlignment="center"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         android:textSize="80sp"
         android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/textViewRollingAngle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -59,34 +61,34 @@
         android:id="@+id/textViewAcceleration"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
         android:text="@string/textAcceleration"
         android:textSize="40sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ButtonClearCache" />
+        app:layout_constraintBottom_toBottomOf="@+id/textViewSpeedAvg"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/textViewOrientation"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/textAcceleration"
         android:textSize="20sp"
-        app:layout_constraintBottom_toBottomOf="@+id/textViewAcceleration3D"
+        app:layout_constraintBottom_toTopOf="@+id/buttonShowTracksActivity"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/textViewAcceleration3D"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/textAcceleration3D"
         android:textAlignment="viewEnd"
         android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ButtonClearCache" />
+        app:layout_constraintBottom_toTopOf="@+id/buttonShowTracksActivity"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
         android:id="@+id/textViewAccuracy"
@@ -106,8 +108,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="13dp"
         android:text="@string/textCurrentAngle"
         android:textSize="40sp"
+        app:layout_constraintBottom_toTopOf="@+id/textViewTrackingState"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewSpeed" />
@@ -136,34 +140,34 @@
 
     <TextView
         android:id="@+id/textViewTrackingState"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:text="@string/tracking_status"
         app:layout_constraintBottom_toTopOf="@+id/toggleButtonLocationManager"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0"
-        tools:layout_editor_absoluteX="20dp" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/textViewLocationCount"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="212dp"
+        android:layout_marginEnd="8dp"
         android:text="@string/textDBEntries"
         android:textAlignment="viewEnd"
         app:layout_constraintBottom_toBottomOf="@+id/textViewTrackingState"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <ToggleButton
         android:id="@+id/toggleButtonLocationManager"
-        android:layout_width="0dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="32dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/tracking"
         android:textOff="@string/tracking_off"
         android:textOn="@string/tracking_on"
+        android:textSize="25sp"
+        app:layout_constraintBottom_toTopOf="@+id/ButtonClearCache"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -173,35 +177,37 @@
         android:id="@+id/ButtonClearCache"
         android:layout_width="wrap_content"
         android:layout_height="50dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/clear_cache"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toggleButtonLocationManager" />
+        app:layout_constraintBottom_toTopOf="@+id/textViewAcceleration3D"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/buttonShowTracksActivity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:onClick="onShowMapsActivity"
-        android:text="Show Tracks"
+        android:text="@string/show_tracks"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textViewOrientation" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/buttonSaveTrip"
         android:layout_width="200dp"
         android:layout_height="50dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
+        android:layout_marginBottom="8dp"
         android:onClick="onSaveRoute"
-        android:text="Save Trip"
+        android:text="@string/save_trip"
+        app:layout_constraintBottom_toTopOf="@+id/textViewAcceleration3D"
         app:layout_constraintEnd_toStartOf="@+id/ButtonClearCache"
-        app:layout_constraintStart_toStartOf="@+id/textViewTrackingState"
-        app:layout_constraintTop_toBottomOf="@+id/toggleButtonLocationManager" />
+        app:layout_constraintHorizontal_bias="0.8"
+        app:layout_constraintStart_toStartOf="@+id/toggleButtonLocationManager" />
 
 
 </android.support.constraint.ConstraintLayout>
