@@ -47,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private float[] myFilteredGravity;
     private float[] myGeomagnetic;
     private LocationManager myLocationManager;
+    private ToggleButton myLocationManagerToggleButton;
+    private TextView myTextViewTimeTracking;
     private TextView myTextViewLocation;
     private TextView myTextViewSpeed;
     private TextView myTextViewSpeedAvg;
@@ -64,15 +66,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private double rollingAngleOffset;
     private double rollingAngleCalibrated;
     private List<LocationEntry> wayPoints;
+    private float myCurrentSpeed = 0;
     private double myMaxSpeed = 0;
     private double myMinRolling = 0;
     private double myMaxRolling = 0;
     private double myAvgRolling = 0;
     private double myCntRolling = 0;
     private double myAverageSpeed = 0;
+    private Long startTimeInMillis;
 
-//    Logger logger;
-//    FileHandler fh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,30 +82,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-//        logger = Logger.getLogger("MyLog");
-//        try {
-//            String externalStorage = Environment.getExternalStorageDirectory().getAbsolutePath();
-//            File loggingDir = new File(externalStorage + File.separator + "Logs");
-//            if (!loggingDir.exists()) {
-//                loggingDir.mkdir();
-//            }
-//            SimpleDateFormat format = new SimpleDateFormat("YYYYMMdd_HHmmss");
-//            String fileName = "MyMotoTracker" + format.format(Calendar.getInstance().getTime()) + ".log";
-//            fh = new FileHandler(loggingDir + File.separator + fileName);
-//            logger.addHandler(fh);
-//            SimpleFormatter formatter = new SimpleFormatter();
-//            fh.setFormatter(formatter);
-//            logger.setUseParentHandlers(false);
-//            logger.warning("Test");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
         myAcceleration = new float[]{0, 0, 0};
         myGravity = new float[]{0, 0, 0};
         myFilteredGravity = new float[]{0, 0, 0};
         wayPoints = new ArrayList<LocationEntry>();
 
+        myTextViewTimeTracking = findViewById(R.id.textViewTimeTracking);
         myTextViewLocation = findViewById(R.id.textViewLocation);
         myTextViewSpeed = findViewById(R.id.textViewSpeed);
         myTextViewSpeedAvg = findViewById(R.id.textViewSpeedAvg);
@@ -117,12 +101,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myTextViewRollingAngleRight = findViewById(R.id.textViewRollingAngleRight);
         myTextViewLocationEntries = findViewById(R.id.textViewLocationCount);
 
-        final ToggleButton myLocationManagerToggleButton = findViewById(R.id.toggleButtonLocationManager);
+        myLocationManagerToggleButton = findViewById(R.id.toggleButtonLocationManager);
         myLocationManagerToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     enableSensorManager();
                     enableLocationManager();
+                    startTimeInMillis = System.currentTimeMillis();
                 } else {
                     disableSensorManager();
                     disableLocationManager();
@@ -137,7 +122,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 locationRepository.clearCache();
                 locationRepository.close();
                 resetTextViews();
-                //updateTextViews();
             }
         });
 
@@ -174,8 +158,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myAccelerometer = mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         myMagnetometer = mySensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         myLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-
-        //updateTextViews();
 
     }
 
@@ -265,14 +247,14 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     public void onLocationChanged(Location location) {
         double longitude = location.getLongitude();
         double latitude = location.getLatitude();
-        float speed = location.getSpeed();
+        myCurrentSpeed = location.getSpeed();
         long timestamp = location.getTime();
         String strTimestamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(timestamp);
         float direction = location.getBearing();
         float accuracy = location.getAccuracy();
         float acceleration = 0;
         if (lastLocation != null) {
-            acceleration = (speed - lastLocation.getSpeed()) / ((location.getTime() - lastLocation.getTime()) / 1000);
+            acceleration = (myCurrentSpeed - lastLocation.getSpeed()) / ((location.getTime() - lastLocation.getTime()) / 1000);
         }
         if (Float.isInfinite(acceleration) || Float.isNaN(acceleration)){
             acceleration = 0;
@@ -282,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
                 strTimestamp,
                 latitude,
                 longitude,
-                toKMH(speed),
+                toKMH(myCurrentSpeed),
                 acceleration,
                 direction,
                 accuracy);
@@ -290,11 +272,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myTextViewLocation.setText(message);
 
         LocationEntry locationEntry = new LocationEntry(timestamp, latitude, longitude,
-                speed, acceleration, myAcceleration[0], myAcceleration[1], myAcceleration[2],
+                myCurrentSpeed, acceleration, myAcceleration[0], myAcceleration[1], myAcceleration[2],
                 accuracy, (myAvgRolling / myCntRolling));
 
         // only record locations if speed is greater than 2 km/h
-        if (toKMH(speed) >= 2) {
+        if (toKMH(myCurrentSpeed) >= 2) {
             lastLocation = location;
             LocationRepository locationRepository = new LocationRepository(getApplicationContext());
             wayPoints.add(locationEntry);
@@ -396,7 +378,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     }
 
     private void resetAvgMaxSpeedTextViews() {
-        myAverageSpeed = 0;
+        if (wayPoints.size() > 0) {
+            myAverageSpeed = myCurrentSpeed * wayPoints.size();
+        } else {
+            myAverageSpeed = 0;
+        }
         myMaxSpeed = 0;
         myTextViewSpeed.setText("0");
         myTextViewSpeedAvg.setText("0");
@@ -413,6 +399,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     }
 
     private void updateTextViews(LocationEntry location) {
+        Long currentTimeInMillis = System.currentTimeMillis() - startTimeInMillis;
+        int hours = (int) (currentTimeInMillis / (1000 * 60 * 60));
+        int mins = (int) (currentTimeInMillis / (1000 * 60)) % 60;
+        long secs = (int) (currentTimeInMillis / 1000) % 60;
+        myTextViewTimeTracking.setText(String.format("%02d:%02d:%02d", hours, mins, secs));
+
         myTextViewSpeed.setText(String.format("%.0f", toKMH(location.getSpeed())));
         myTextViewAcceleration.setText(String.format("%.0f", location.getAcceleration()));
         myTextViewAccuracy.setText(String.format("%.2f", location.getAccuracy()) + " m");

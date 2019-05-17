@@ -4,6 +4,7 @@
     <string name="map_not_ready">Karte (noch) nicht verfügbar.</string>
     <string name="location_information">Location information</string>
     <string name="textAcceleration">0</string>
+    <string name="timetracking">00:00:00</string>
     <string name="textAcceleration3D">0 m/s^2\n0 m/s^2\n0 m/s^2\n0 m/s^2</string>
     <string name="textAccuracy">0 m</string>
     <string name="textCurrentAngle">0°</string>
