@@ -69,10 +69,17 @@
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".LocationUpdatesBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="anony.mouse.mymototracker.LocationUpdatesBroadcastReceiver.ACTION_PROCESS_UPDATES" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

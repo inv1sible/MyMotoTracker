@@ -1,17 +1,19 @@
 package anony.mouse.mymototracker;
 
 import android.Manifest;
-import android.content.Context;
+import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -23,7 +25,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -35,13 +36,20 @@ import static java.lang.String.format;
 // https://developer.android.com/guide/topics/location/strategies
 // https://developer.android.com/training/permissions/requesting
 
-public class MainActivity extends AppCompatActivity implements LocationListener, SensorEventListener {
+public class MainActivity extends AppCompatActivity implements
+        SharedPreferences.OnSharedPreferenceChangeListener,
+        //     LocationListener,
+        SensorEventListener {
 
-    public static final String EXTRA_MESSAGE = "anony.mouse.mymototracker.MESSAGE";
+    protected static final String EXTRA_MESSAGE = "anony.mouse.mymototracker.MESSAGE";
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int REQUEST_PERMISSIONS_REQUEST_CODE = 0;
     private final int MY_PERMISSIONS_ACCESS_FINE_LOCATION = 1;
+
     private SensorManager mySensorManager;
     private Sensor myAccelerometer;
     private Sensor myMagnetometer;
+    private LocationService myLocationService;
     private float[] myGravity;
     private float[] myAcceleration;
     private float[] myFilteredGravity;
@@ -75,12 +83,24 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private double myAverageSpeed = 0;
     private Long startTimeInMillis;
 
+    protected static double toKMH(double speed) {
+        double speedInKMH = speed * 3.6;
+        if (Double.isNaN(speedInKMH) || Double.isInfinite(speedInKMH)) {
+            speedInKMH = 0d;
+        }
+        return speedInKMH;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Check if the user revoked runtime permissions.
+        if (!checkPermissions()) {
+            requestPermissions();
+        }
 
         myAcceleration = new float[]{0, 0, 0};
         myGravity = new float[]{0, 0, 0};
@@ -157,7 +177,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         myAccelerometer = mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         myMagnetometer = mySensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        myLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        myLocationService = new LocationService();
 
     }
 
@@ -171,201 +191,43 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         super.onPause();
     }
 
-    protected static double toKMH(double speed) {
-        double speedInKMH = speed * 3.6;
-        if (Double.isNaN(speedInKMH) || Double.isInfinite(speedInKMH)) {
-            speedInKMH = 0d;
-        }
-        return speedInKMH;
-    }
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+//        switch (requestCode) {
+//            case MY_PERMISSIONS_ACCESS_FINE_LOCATION: {
+//                // If request is cancelled, the result arrays are empty.
+//                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                    // permission was granted, yay!
+//                    enableLocationManager();
+//                } else {
+//                    // permission was revoked, booh!
+//                    disableLocationManager();
+//                }
+//            }
+//        }
+//    }
 
-    /**
-     * Called when the user taps the buttonSaveRoute
-     */
-    public void onSaveRoute(View view) {
-        LocationRepository locationRepository = new LocationRepository(getApplicationContext());
-        locationRepository.saveRoute();
-
-    }
-
-    private void enableLocationManager() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_ACCESS_FINE_LOCATION);
-            return;
-        }
-        myLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-    }
-
-    private void disableLocationManager() {
-        myLocationManager.removeUpdates(this);
-    }
-
-    private void enableSensorManager() {
-        mySensorManager.registerListener(this, myAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        mySensorManager.registerListener(this, myMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
-    }
-
-    private void disableSensorManager() {
-        mySensorManager.unregisterListener(this);
+    @Override
+    protected void onStart() {
+        super.onStart();
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted, yay!
-                    enableLocationManager();
-                } else {
-                    // permission was revoked, booh!
-                    disableLocationManager();
-                }
-            }
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+        Log.d("!!!", s);
+        if (s.equals(LocationResultHelper.KEY_LOCATION_UPDATES_RESULT)) {
+            //mLocationUpdatesResultView.setText(LocationResultHelper.getSavedLocationResult(this));
+        } else if (s.equals(LocationRequestHelper.KEY_LOCATION_UPDATES_REQUESTED)) {
+            //updateButtonsState(LocationRequestHelper.getRequesting(this));
         }
-    }
-
-    /**
-     * Called when the user taps the ShowMapsActivity button
-     */
-    public void onShowMapsActivity(View view) {
-        Intent intent = new Intent(this, TracksActivity.class);
-//        EditText editText = (EditText) findViewById(R.id.editText);
-//        String message = editText.getText().toString();
-//        intent.putExtra(EXTRA_MESSAGE, message);
-        startActivity(intent);
-        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         String message = "accuracy=" + accuracy;
         Log.d("orientation", message);
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        double longitude = location.getLongitude();
-        double latitude = location.getLatitude();
-        myCurrentSpeed = location.getSpeed();
-        long timestamp = location.getTime();
-        String strTimestamp = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(timestamp);
-        float direction = location.getBearing();
-        float accuracy = location.getAccuracy();
-        float acceleration = 0;
-        if (lastLocation != null) {
-            acceleration = (myCurrentSpeed - lastLocation.getSpeed()) / ((location.getTime() - lastLocation.getTime()) / 1000);
-        }
-        if (Float.isInfinite(acceleration) || Float.isNaN(acceleration)){
-            acceleration = 0;
-        }
-        String message = format(Locale.GERMANY,
-                "%s: lat=%.2f, lon=%.2f, \nspeed=%.2f km/h, accel=%.2f m/s^2, \ndir=%.2f, acc=%.2f m",
-                strTimestamp,
-                latitude,
-                longitude,
-                toKMH(myCurrentSpeed),
-                acceleration,
-                direction,
-                accuracy);
-        Log.d("location", message);
-        myTextViewLocation.setText(message);
-
-        LocationEntry locationEntry = new LocationEntry(timestamp, latitude, longitude,
-                myCurrentSpeed, acceleration, myAcceleration[0], myAcceleration[1], myAcceleration[2],
-                accuracy, (myAvgRolling / myCntRolling));
-
-        // only record locations if speed is greater than 2 km/h
-        if (toKMH(myCurrentSpeed) >= 2) {
-            lastLocation = location;
-            LocationRepository locationRepository = new LocationRepository(getApplicationContext());
-            wayPoints.add(locationEntry);
-            locationRepository.insertLocation(locationEntry);
-            locationRepository.close();
-        }
-        myAvgRolling = 0;
-        myCntRolling = 0;
-        updateTextViews(locationEntry);
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            myGravity = event.values;
-
-            //https://developer.android.com/guide/topics/sensors/sensors_motion.html#sensors-motion-accel
-            final float alpha = 0.8f;
-
-            myFilteredGravity[0] = alpha * myFilteredGravity[0] + (1 - alpha) * event.values[0];
-            myFilteredGravity[1] = alpha * myFilteredGravity[1] + (1 - alpha) * event.values[1];
-            myFilteredGravity[2] = alpha * myFilteredGravity[2] + (1 - alpha) * event.values[2];
-
-            myAcceleration[0] = event.values[0] - myFilteredGravity[0];
-            myAcceleration[1] = event.values[1] - myFilteredGravity[1];
-            myAcceleration[2] = event.values[2] - myFilteredGravity[2];
-
-            double Vges = sqrt(myAcceleration[0] * myAcceleration[0]
-                    + myAcceleration[1] * myAcceleration[1]
-                    + myAcceleration[0] * myAcceleration[0]);
-
-            String message = format(Locale.GERMANY,
-                    "Vx=%.2f m/s^2 \nVy=%.2f m/s^2 \nVz=%.2f m/s^2 \nVges=%.2f m/s^2",
-                    myAcceleration[0], myAcceleration[1], myAcceleration[2], Vges);
-            Log.d("orientation", message);
-            myTextViewAcceleration3D.setText(message);
-
-            //myGravity = event.values;
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            myGeomagnetic = event.values;
-        }
-        if (myGravity != null && myGeomagnetic != null) {
-            float[] R = new float[9];
-            float[] I = new float[9];
-            boolean success = SensorManager.getRotationMatrix(R, I, myGravity, myGeomagnetic);
-            if (success) {
-                float[] orientation = new float[3];
-                SensorManager.getOrientation(R, orientation);
-                double azimuth = toDegrees(orientation[0]);
-                double pitch = toDegrees(orientation[1]);
-                double roll = toDegrees(orientation[2]);
-                myTextViewOrientation.setText(String.format(Locale.GERMANY, "azimuth: %.0f°\npitch: %.0f°\nroll: %.0f°\norientation: na", azimuth, pitch, roll));
-                // Calculate rolling angle only when parallel to the ground (0) and -80 degree turned towards viewer
-                //if (pitch > -80d && pitch < 0d) {
-                    rollingAngleRaw = roll;
-                    rollingAngleCalibrated = roll - rollingAngleOffset;
-                    if (rollingAngleCalibrated < -90d) {
-                        rollingAngleCalibrated = -90d;
-                    }
-                    if (rollingAngleCalibrated > 90d) {
-                        rollingAngleCalibrated = 90d;
-                    }
-                //} else {
-                //    rollingAngleCalibrated = 0d;
-                //}
-                myAvgRolling += rollingAngleCalibrated;
-                myCntRolling += 1;
-                String message = format(Locale.GERMANY, "azimuth=%.0f, pitch=%.0f, roll=%.0f", azimuth, pitch, roll);
-                Log.d("orientation", message);
-            }
-        }
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        String message = format(Locale.GERMANY, "provider=%s, status=%d", provider, status);
-        Log.d("location", message);
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        String message = format("provider %s enabled", provider);
-        Log.d("location", message);
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        String message = format("provider %s disabled", provider);
-        Log.d("location", message);
     }
 
     private void resetTextViews() {
@@ -428,5 +290,210 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
             myTextViewRollingAngleLeft.setText(String.format("%.0f", Math.abs(myRolling)) + "°");
         }
         myTextViewLocationEntries.setText(wayPoints.size() + " trackpoints");
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            myGravity = event.values;
+
+            //https://developer.android.com/guide/topics/sensors/sensors_motion.html#sensors-motion-accel
+            final float alpha = 0.8f;
+
+            myFilteredGravity[0] = alpha * myFilteredGravity[0] + (1 - alpha) * event.values[0];
+            myFilteredGravity[1] = alpha * myFilteredGravity[1] + (1 - alpha) * event.values[1];
+            myFilteredGravity[2] = alpha * myFilteredGravity[2] + (1 - alpha) * event.values[2];
+
+            myAcceleration[0] = event.values[0] - myFilteredGravity[0];
+            myAcceleration[1] = event.values[1] - myFilteredGravity[1];
+            myAcceleration[2] = event.values[2] - myFilteredGravity[2];
+
+            double Vges = sqrt(myAcceleration[0] * myAcceleration[0]
+                    + myAcceleration[1] * myAcceleration[1]
+                    + myAcceleration[0] * myAcceleration[0]);
+
+            String message = format(Locale.GERMANY,
+                    "Vx=%.2f m/s^2 \nVy=%.2f m/s^2 \nVz=%.2f m/s^2 \nVges=%.2f m/s^2",
+                    myAcceleration[0], myAcceleration[1], myAcceleration[2], Vges);
+            Log.d("orientation", message);
+            myTextViewAcceleration3D.setText(message);
+
+            //myGravity = event.values;
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            myGeomagnetic = event.values;
+        }
+        if (myGravity != null && myGeomagnetic != null) {
+            float[] R = new float[9];
+            float[] I = new float[9];
+            boolean success = SensorManager.getRotationMatrix(R, I, myGravity, myGeomagnetic);
+            if (success) {
+                float[] orientation = new float[3];
+                SensorManager.getOrientation(R, orientation);
+                double azimuth = toDegrees(orientation[0]);
+                double pitch = toDegrees(orientation[1]);
+                double roll = toDegrees(orientation[2]);
+                myTextViewOrientation.setText(String.format(Locale.GERMANY, "azimuth: %.0f°\npitch: %.0f°\nroll: %.0f°\norientation: na", azimuth, pitch, roll));
+                // Calculate rolling angle only when parallel to the ground (0) and -80 degree turned towards viewer
+                //if (pitch > -80d && pitch < 0d) {
+                rollingAngleRaw = roll;
+                rollingAngleCalibrated = roll - rollingAngleOffset;
+                if (rollingAngleCalibrated < -90d) {
+                    rollingAngleCalibrated = -90d;
+                }
+                if (rollingAngleCalibrated > 90d) {
+                    rollingAngleCalibrated = 90d;
+                }
+                //} else {
+                //    rollingAngleCalibrated = 0d;
+                //}
+                myAvgRolling += rollingAngleCalibrated;
+                myCntRolling += 1;
+                String message = format(Locale.GERMANY, "azimuth=%.0f, pitch=%.0f, roll=%.0f", azimuth, pitch, roll);
+                Log.d("orientation", message);
+            }
+        }
+    }
+
+    /**
+     * Called when the user taps the buttonSaveRoute
+     */
+    public void onSaveRoute(View view) {
+        LocationRepository locationRepository = new LocationRepository(getApplicationContext());
+        locationRepository.saveRoute();
+
+    }
+
+    private PendingIntent getPendingIntent() {
+        Intent intent = new Intent(this, LocationUpdatesBroadcastReceiver.class);
+        intent.setAction(LocationUpdatesBroadcastReceiver.ACTION_PROCESS_UPDATES);
+        return PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    private void enableLocationManager() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_ACCESS_FINE_LOCATION);
+            return;
+        }
+        myLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, myLocationService);
+        myLocationService.start(getPendingIntent());
+    }
+
+    private void disableLocationManager() {
+        myLocationService.stop();
+    }
+
+    /**
+     * Return the current state of the permissions needed.
+     */
+    private boolean checkPermissions() {
+        int permissionState = ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION);
+        return permissionState == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermissions() {
+        boolean shouldProvideRationale =
+                ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.ACCESS_FINE_LOCATION);
+
+        // Provide an additional rationale to the user. This would happen if the user denied the
+        // request previously, but didn't check the "Don't ask again" checkbox.
+        if (shouldProvideRationale) {
+            Log.i(TAG, "Displaying permission rationale to provide additional context.");
+//            Snackbar.make(
+//                    findViewById(R.id.),
+//                    R.string.permission_rationale,
+//                    Snackbar.LENGTH_INDEFINITE)
+//                    .setAction(R.string.ok, new View.OnClickListener() {
+//                        @Override
+//                        public void onClick(View view) {
+//                            // Request permission
+//                            ActivityCompat.requestPermissions(MainActivity.this,
+//                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+//                                    REQUEST_PERMISSIONS_REQUEST_CODE);
+//                        }
+//                    })
+//                    .show();
+        } else {
+            Log.i(TAG, "Requesting permission");
+            // Request permission. It's possible this can be auto answered if device policy
+            // sets the permission in a given state or the user denied the permission
+            // previously and checked "Never ask again".
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_PERMISSIONS_REQUEST_CODE);
+        }
+    }
+
+    /**
+     * Callback received when a permissions request has been completed.
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        Log.i(TAG, "onRequestPermissionResult");
+        if (requestCode == REQUEST_PERMISSIONS_REQUEST_CODE) {
+            if (grantResults.length <= 0) {
+                // If user interaction was interrupted, the permission request is cancelled and you
+                // receive empty arrays.
+                Log.i(TAG, "User interaction was cancelled.");
+            } else if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission was granted. Kick off the process of building and connecting
+                // GoogleApiClient.
+                //buildGoogleApiClient();
+            } else {
+                // Permission denied.
+
+                // Notify the user via a SnackBar that they have rejected a core permission for the
+                // app, which makes the Activity useless. In a real app, core permissions would
+                // typically be best requested during a welcome-screen flow.
+
+                // Additionally, it is important to remember that a permission might have been
+                // rejected without asking the user for permission (device policy or "Never ask
+                // again" prompts). Therefore, a user interface affordance is typically implemented
+                // when permissions are denied. Otherwise, your app could appear unresponsive to
+                // touches or interactions which have required permissions.
+//                Snackbar.make(
+//                        findViewById(R.id.activity_main),
+//                        R.string.permission_denied_explanation,
+//                        Snackbar.LENGTH_INDEFINITE)
+//                        .setAction(R.string.settings, new View.OnClickListener() {
+//                            @Override
+//                            public void onClick(View view) {
+//                                // Build intent that displays the App settings screen.
+//                                Intent intent = new Intent();
+//                                intent.setAction(
+//                                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+//                                Uri uri = Uri.fromParts("package",
+//                                        BuildConfig.APPLICATION_ID, null);
+//                                intent.setData(uri);
+//                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                                startActivity(intent);
+//                            }
+//                        })
+//                        .show();
+            }
+        }
+    }
+
+    private void enableSensorManager() {
+        mySensorManager.registerListener(this, myAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        mySensorManager.registerListener(this, myMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    private void disableSensorManager() {
+        mySensorManager.unregisterListener(this);
+    }
+
+    /**
+     * Called when the user taps the ShowMapsActivity button
+     */
+    public void onShowMapsActivity(View view) {
+        Intent intent = new Intent(this, TracksActivity.class);
+//        EditText editText = (EditText) findViewById(R.id.editText);
+//        String message = editText.getText().toString();
+//        intent.putExtra(EXTRA_MESSAGE, message);
+        startActivity(intent);
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
     }
 }
