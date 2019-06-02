@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/blankTracks">
+
+    <activity
+        android:id="@+id/tracksActivity"
+        android:name="anony.mouse.mymototracker.TracksActivity"
+        android:label="activity_tracks"
+        tools:layout="@layout/activity_tracks" />
+    <fragment
+        android:id="@+id/blankTracks"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:label="fragment_tracks"
+        tools:layout="@layout/fragment_tracks"
+        app:defaultNavHost="true" >
+        <action
+            android:id="@+id/action_blankTracks_to_tracksActivity"
+            app:destination="@id/tracksActivity"
+            app:enterAnim="@anim/slide_in_left"
+            app:exitAnim="@anim/slide_out_right" />
+    </fragment>
+</navigation>

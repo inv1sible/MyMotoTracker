@@ -47,7 +47,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     private float[] myFilteredGravity;
     private float[] myGeomagnetic;
     private LocationManager myLocationManager;
-    private ToggleButton myLocationManagerToggleButton;
     private TextView myTextViewTimeTracking;
     private TextView myTextViewLocation;
     private TextView myTextViewSpeed;
@@ -101,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         myTextViewRollingAngleRight = findViewById(R.id.textViewRollingAngleRight);
         myTextViewLocationEntries = findViewById(R.id.textViewLocationCount);
 
-        myLocationManagerToggleButton = findViewById(R.id.toggleButtonLocationManager);
+        ToggleButton myLocationManagerToggleButton = findViewById(R.id.toggleButtonLocationManager);
         myLocationManagerToggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
@@ -229,7 +228,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
      * Called when the user taps the ShowMapsActivity button
      */
     public void onShowMapsActivity(View view) {
-        Intent intent = new Intent(this, TracksActivity.class);
+        Intent intent = new Intent(this, BlankTracksActivity.class);
 //        EditText editText = (EditText) findViewById(R.id.editText);
 //        String message = editText.getText().toString();
 //        intent.putExtra(EXTRA_MESSAGE, message);
