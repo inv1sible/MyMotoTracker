@@ -16,6 +16,9 @@ public interface LocationDao {
     @Query("SELECT * FROM locations")
     LiveData<List<LocationEntry>> getAllLocations();
 
+    @Query("SELECT * FROM locations GROUP BY routeID")
+    LiveData<List<LocationEntry>> getTracks();
+
 //    @Query("SELECT * FROM locations WHERE uid IN (:deviceIds)")
 //    List<LocationEntry> loadAllLocationsByDeviceIds(int[] deviceIds);
 //

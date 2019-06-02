@@ -37,6 +37,10 @@ public class LocationRepository {
         return locationDatabase.daoAccess().getAllLocations();
     }
 
+    public LiveData<List<LocationEntry>> getTracks() {
+        return locationDatabase.daoAccess().getTracks();
+    }
+
     @SuppressLint("StaticFieldLeak")
     public void clearCache() {
         new AsyncTask<Void, Void, Void>() {
@@ -88,4 +92,5 @@ public class LocationRepository {
     public void close() {
         if(locationDatabase != null){ locationDatabase.close(); }
     }
+
 }
